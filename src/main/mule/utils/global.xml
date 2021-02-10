@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="1ee13476-69f5-4072-b799-77b04aa09751" >
+		<db:my-sql-connection host="${secure::db.host}" port="${db.port}" user="${secure::db.user}" password="${secure::db.password}" database="${db.database}" />
+	</db:config>
+	
+	<global-property doc:name="Global Property" doc:id="1b68be8e-f86e-411d-828d-0fdf2bcbffa5" name="env" value="dev" />
+	
+	<!-- I put this global property here only for example -->
+	<global-property doc:name="Global Property" doc:id="9fb23aa5-bf07-4253-af6d-1a5cc4538300" name="encrypt.key" value="123456" />
+	
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="054e56f0-59f1-4e41-86e5-1ed4814e2570" file="${env}-secure.yaml" key="${encrypt.key}">
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="c2dd4479-539e-43fe-945a-8ff4ed1993b9" file="${env}.yaml" />
+</mule>

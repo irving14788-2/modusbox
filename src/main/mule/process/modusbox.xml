@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="modusboxFlow" doc:id="a7f9dbfd-6828-4593-a311-6e751c00aded" >
+		<logger level="INFO" doc:name="Logger" doc:id="2d1399ca-fd3d-402c-9d36-c83e14ffd41a" message="input #[vars.orderId]"/>
+		<db:select doc:name="Select" doc:id="5f8fd7a3-8975-4728-ab18-75bf555fdab7" config-ref="Database_Config" target="vOutputOrder">
+			<db:sql><![CDATA[SELECT o.OrderID, o.PlacementDate, o.CustomerName,oi.ItemCount, i.ItemId, i.ItemName,i.ItemCost FROM Orders o
+INNER JOIN OrderItems oi ON oi.OrderID=o.OrderID
+INNER JOIN Items i ON  i.ItemId=oi.ItemId
+WHERE o.OrderID=:orderid
+]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'orderid':vars.orderId}]]]></db:input-parameters>
+		</db:select>
+		<logger level="INFO" doc:name="Logger" doc:id="8d583af4-5547-48e3-b149-ad5e94f2ccab" />
+		<choice doc:name="Choice" doc:id="646a8d1a-f5f7-4b8d-ac0c-be3f6c25d2b8" >
+			<when expression="#[sizeOf(vars.vOutputOrder) &gt; 0]">
+				<ee:transform doc:name="Transform Message" doc:id="7429bcf2-15f0-4aaf-9c8a-2310885ca3dd">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  trace: {
+    cod: "0",
+    msj: "OK"
+    },
+  resp: {
+  	orderID: vars.vOutputOrder[0].OrderID,
+    placementDate: vars.vOutputOrder[0].PlacementDate,
+    customerName: vars.vOutputOrder[0].CustomerName,
+    items: 
+    	vars.vOutputOrder map {
+    		itemId: $.ItemId,
+	        itemName: $.ItemName,
+	        itemCost: $.ItemCost
+    	}
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="3d50d501-a6f3-4185-be77-138c98ca47cc" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  trace: {
+    cod: "1",
+    msj: "the Order is empty"
+    }
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="e7d5dde6-006e-4230-945a-317a00d75f5c" message="output #[payload]"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="f5aa5e1e-a93d-4511-88e5-09f522c1883c" >
+				<logger level="INFO" doc:name="Logger" doc:id="488b923e-d0a3-4210-9ac5-0e691017c7ce" message="ERROR:  #[error]"/>
+				<ee:transform doc:name="Transform Message" doc:id="27874d5b-5189-4ddc-bccb-795d347f4f4d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  trace: {
+    cod: "-1",
+    msj: error.description
+    }
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
